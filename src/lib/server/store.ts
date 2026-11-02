@@ -4,6 +4,7 @@ import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import type { Store } from "../types";
 import { freshStore } from "./engine";
+import { withFileLock } from "./file-lock";
 export const production = !!(
   process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
 );
@@ -51,7 +52,7 @@ export function transact<T>(
   fn: (store: Store) => T | Promise<T>,
   write = true,
 ): Promise<T> {
-  const task = queue.then(async () => {
+  const execute = async () => {
     for (let attempt = 0; attempt < 5; attempt++) {
       const store = await read();
       const version = store.version;
@@ -79,13 +80,21 @@ export function transact<T>(
             signalError.code,
           );
       } else {
-        await fs.mkdir(directory, { recursive: true });
-        await fs.writeFile(file + ".tmp", JSON.stringify(store), "utf8");
+        await fs.mkdir(directory, { recursive: true, mode: 0o700 });
+        await fs.writeFile(file + ".tmp", JSON.stringify(store), {
+          encoding: "utf8",
+          mode: 0o600,
+        });
         await fs.rename(file + ".tmp", file);
       }
       return result;
     }
     throw new Error("Event is busy. Retry your action.");
+  };
+  const task = queue.then(async () => {
+    if (production || !write) return execute();
+    await fs.mkdir(directory, { recursive: true, mode: 0o700 });
+    return withFileLock(path.join(directory, "event.lock"), execute);
   });
   queue = task.then(
     () => {},

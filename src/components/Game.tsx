@@ -1,4 +1,5 @@
 "use client";
+import { clientFetch } from "@/lib/client-fetch";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { AnimatePresence, motion, MotionConfig } from "framer-motion";
 import {
@@ -36,6 +37,7 @@ import {
   type BoardEntry,
 } from "@/lib/types";
 import { sound } from "@/lib/sound";
+import { readPreference, writePreference } from "@/lib/browser-storage";
 type Screen = "intro" | "identify" | "map" | "room" | "leaderboard" | "ending";
 export default function Game({ initial = "intro" }: { initial?: Screen }) {
   const [screen, setScreen] = useState<Screen>(initial),
@@ -43,6 +45,7 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
     [config, setConfig] = useState<Config>(DEFAULT_CONFIG),
     [mode, setMode] = useState("local"),
     [loading, setLoading] = useState(true),
+    [connectionError, setConnectionError] = useState(""),
     [busy, setBusy] = useState(false),
     [boot, setBoot] = useState(0),
     [muted, setMuted] = useState(true),
@@ -62,7 +65,7 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
   const remember = (r: PublicRun) => {
     setRun(r);
     try {
-      localStorage.setItem(
+      writePreference(
         "nexus-resume",
         JSON.stringify({
           sessionId: r.id,
@@ -77,16 +80,20 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
     }
   };
   const refresh = useCallback(async () => {
+    setLoading(true);
+    setConnectionError("");
     try {
-      const res = await fetch("/api/game");
+      const res = await clientFetch("/api/game");
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setRun(data.run);
       setConfig(data.config);
       setMode(data.mode);
       setOffset(data.serverTime - Date.now());
+      setNow(data.serverTime);
       if (initial === "map" && !data.run) setScreen("identify");
     } catch (e) {
+      setConnectionError((e as Error).message);
       setFeedback({ ok: false, message: (e as Error).message });
     } finally {
       setLoading(false);
@@ -94,8 +101,13 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
   }, [initial]);
   useEffect(() => {
     void refresh();
-    setMuted(localStorage.getItem("nexus-muted") !== "false");
-    const timer = setInterval(() => setBoot((v) => Math.min(100, v + 5)), 70);
+    setMuted(readPreference("nexus-muted") !== "false");
+    let progress = 0;
+    const timer = setInterval(() => {
+      progress = Math.min(100, progress + 5);
+      setBoot(progress);
+      if (progress === 100) clearInterval(timer);
+    }, 70);
     return () => clearInterval(timer);
   }, [refresh]);
   useEffect(() => {
@@ -123,7 +135,7 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
   }, [remaining, run]);
   const loadBoard = useCallback(async () => {
     try {
-      const res = await fetch("/api/game?leaderboard=1");
+      const res = await clientFetch("/api/game?leaderboard=1");
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setEntries(data.entries);
@@ -225,7 +237,7 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
     requestLock.current = true;
     setBusy(true);
     try {
-      const res = await fetch("/api/game", {
+      const res = await clientFetch("/api/game", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type, stage: run.stage, answer }),
@@ -320,7 +332,7 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
               className="icon-button"
               aria-label={muted ? "Enable sound" : "Mute sound"}
               onClick={() => {
-                localStorage.setItem("nexus-muted", String(!muted));
+                writePreference("nexus-muted", String(!muted));
                 setMuted(!muted);
                 if (muted) sound("boot");
               }}
@@ -329,6 +341,18 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
             </button>
           </div>
         </header>
+        {connectionError && (
+          <div className="connection-error" role="alert">
+            <span>Unable to load your mission. {connectionError}</span>
+            <button
+              className="button"
+              disabled={loading}
+              onClick={() => void refresh()}
+            >
+              {loading ? "RECONNECTING…" : "RETRY CONNECTION"}
+            </button>
+          </div>
+        )}
         <AnimatePresence mode="wait">
           <motion.main
             key={screen}
@@ -365,14 +389,16 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
                     <div className="hero-actions">
                       <button
                         className="button primary large"
-                        disabled={loading || boot < 100}
+                        disabled={loading || !!connectionError || boot < 100}
                         onClick={() => {
                           sound("boot");
                           go(
                             run
                               ? run.stage === 18
                                 ? "ending"
-                                : "map"
+                                : remaining === 0
+                                  ? "identify"
+                                  : "map"
                               : "identify",
                           );
                         }}
@@ -380,7 +406,13 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
                         {loading ? (
                           <LoaderCircle className="spin" size={18} />
                         ) : run ? (
-                          "RESUME MISSION"
+                          run.stage === 18 ? (
+                            "VIEW MISSION RESULT"
+                          ) : remaining === 0 ? (
+                            "NEW MISSION"
+                          ) : (
+                            "RESUME MISSION"
+                          )
                         ) : (
                           "INITIATE ESCAPE"
                         )}{" "}
@@ -536,7 +568,7 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
                     setBusy(true);
                     const form = new FormData(e.currentTarget);
                     try {
-                      const res = await fetch("/api/game", {
+                      const res = await clientFetch("/api/game", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
@@ -605,7 +637,7 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
                   </div>
                   <button
                     className="button primary full large"
-                    disabled={busy || loading}
+                    disabled={busy || loading || !!connectionError}
                   >
                     ENTER THE FACILITY <ArrowRight size={18} />
                   </button>

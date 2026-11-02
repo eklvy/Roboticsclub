@@ -3293,3 +3293,16 @@ h3,
   font-size: 8px;
   color: #ab6975;
 }
+
+.connection-error {
+  padding: 16px 6%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #321423;
+  border-bottom: 1px solid #ff3b5c66;
+  color: #ffc1cc;
+  font-size: 12px;
+  flex-wrap: wrap;
+}

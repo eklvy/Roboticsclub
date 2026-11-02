@@ -79,3 +79,11 @@ The HTTP suite creates a practice operator and verifies cookies, resumption, iso
 - `supabase/migrations/001_event.sql`: RLS-protected persistence and Realtime signal.
 
 Sound starts muted and requires user opt-in. All maze controls support touch; manual navigation also supports arrow keys when focus is outside an input/button. Reduced-motion OS preferences suppress decorative animation.
+
+## Troubleshooting local startup
+
+The tested development command uses Webpack. `npm run typecheck` generates Next.js route types automatically, including on a fresh checkout. If browser storage is blocked, preferences stay in tab memory and gameplay still uses the server session cookie. A failed session connection shows **Retry connection**. Client requests time out after 15 seconds; if a submission times out, refresh/resume before retrying because the server may already have saved it.
+
+An expired mission offers **New mission** on the opening screen. Local game/admin writes use `.data/event.lock` to prevent overlapping saves. If a server crashes and leaves this lock behind, stop all game server processes before removing the lock and restarting. Never remove it while a server is saving.
+
+See `docs/AUDIT.md` for the runtime audit and remaining hosted-deployment checks.

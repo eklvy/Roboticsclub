@@ -1,15 +1,16 @@
+import { readPreference } from "./browser-storage";
 let context: AudioContext | undefined;
 export function sound(
   kind: "click" | "success" | "error" | "boot" | "warning" = "click",
 ) {
   if (
     typeof window === "undefined" ||
-    localStorage.getItem("nexus-muted") !== "false"
+    readPreference("nexus-muted") !== "false"
   )
     return;
   try {
     context ??= new AudioContext();
-    void context.resume();
+    void context.resume().catch(() => {});
     const notes =
       kind === "success"
         ? [440, 660, 880]

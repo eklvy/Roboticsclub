@@ -1,4 +1,5 @@
 "use client";
+import { clientFetch } from "@/lib/client-fetch";
 import { useState, useEffect, useCallback } from "react";
 import { ArrowLeft, Shield, Download, LogOut, RefreshCw } from "lucide-react";
 import {
@@ -23,7 +24,7 @@ export default function Admin() {
     [reset, setReset] = useState("");
   const load = useCallback(async (initial = false) => {
     try {
-      const res = await fetch("/api/admin");
+      const res = await clientFetch("/api/admin");
       if (res.status === 401) {
         setAuthenticated(false);
         return;
@@ -51,7 +52,7 @@ export default function Admin() {
     setError("");
     setNotice("");
     try {
-      const res = await fetch("/api/admin", {
+      const res = await clientFetch("/api/admin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

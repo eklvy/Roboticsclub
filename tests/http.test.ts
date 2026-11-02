@@ -96,24 +96,40 @@ test(
     ).json();
     assert.equal(resumed.run.stage, 11);
     assert.equal(resumed.run.hints, 1);
-    for (const direction of [
-      "R",
-      "R",
-      "R",
-      "R",
-      "R",
-      "D",
-      "D",
-      "D",
-      "D",
-      "D",
-    ]) {
-      const phase = Date.now() % 2400;
-      if (phase < 1250 || phase > 1800)
+    // Synchronize against the server clock, not the test runner's clock.
+    // A delayed request may correctly hit a laser; verify the reset and retry.
+    const route = ["R", "R", "R", "R", "R", "D", "D", "D", "D", "D"];
+    let index = 0,
+      collisions = 0;
+    while (index < route.length) {
+      if (index === 6 || index === 7) {
+        const sent = Date.now();
+        const state = await (
+          await fetch(base + "/api/game", { headers: { Cookie: cookie } })
+        ).json();
+        const serverNow = state.serverTime + (Date.now() - sent) / 2;
+        const phase = serverNow % 2400;
+        // post() adds a 210 ms rate-limit delay; target early in the safe phase.
         await new Promise((r) => setTimeout(r, (1250 - phase + 2400) % 2400));
-      const result = await post({ type: "move", stage: 11, answer: direction });
-      assert.equal(result.data.ok, true, result.data.message);
+      }
+      const result = await post({
+        type: "move",
+        stage: 11,
+        answer: route[index],
+      });
+      assert.equal(result.res.status, 200, JSON.stringify(result.data));
+      if (!result.data.ok) {
+        assert.match(result.data.message, /Laser contact/);
+        assert.deepEqual(result.data.run.laser, [0, 0]);
+        assert.ok(
+          ++collisions <= 3,
+          "Repeated laser failures: server latency exceeds the crossing window",
+        );
+        index = 0;
+        continue;
+      }
       current = result.data.run.stage;
+      index++;
     }
     assert.equal(current, 12);
     await submit("04");

@@ -77,7 +77,12 @@ export default function Puzzle({ run, busy, send, now }: Props) {
   useEffect(() => {
     if (![9, 10, 11].includes(s)) return;
     const listener = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement).matches("input,textarea,button")) return;
+      if (
+        (e.target as HTMLElement).closest(
+          'input,textarea,select,[contenteditable="true"],[role="dialog"]',
+        )
+      )
+        return;
       const key: Record<string, string> = {
         ArrowUp: "U",
         ArrowDown: "D",

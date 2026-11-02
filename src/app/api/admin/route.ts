@@ -35,12 +35,12 @@ async function authorized(req: NextRequest) {
   return Number(expires) > Date.now() && equal(sign(expires), signature ?? "");
 }
 export async function GET(req: NextRequest) {
-  if (!(await authorized(req)))
-    return NextResponse.json(
-      { error: "Administrator authentication required." },
-      { status: 401 },
-    );
   try {
+    if (!(await authorized(req)))
+      return NextResponse.json(
+        { error: "Administrator authentication required." },
+        { status: 401 },
+      );
     return await transact(
       (s) =>
         NextResponse.json({
