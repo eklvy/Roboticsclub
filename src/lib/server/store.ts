@@ -1,4 +1,5 @@
 import "server-only";
+import { validateStorageEnvironment } from "./storage-config";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
@@ -19,15 +20,7 @@ export function database() {
 const directory = path.join(process.cwd(), ".data"),
   file = path.join(directory, "event.json");
 async function read(): Promise<Store> {
-  if (
-    (process.env.NEXT_PUBLIC_SUPABASE_URL ||
-      process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) &&
-    !production
-  )
-    throw new Error(
-      "Incomplete Supabase configuration. Set URL and service role key, or clear all Supabase values for local practice.",
-    );
+  validateStorageEnvironment();
   if (production) {
     const { data, error } = await database()
       .from("event_state")
@@ -92,6 +85,8 @@ export function transact<T>(
     throw new Error("Event is busy. Retry your action.");
   };
   const task = queue.then(async () => {
+    // Validate before any mkdir/lock: serverless storage must never fall back to disk.
+    validateStorageEnvironment();
     if (production || !write) return execute();
     await fs.mkdir(directory, { recursive: true, mode: 0o700 });
     return withFileLock(path.join(directory, "event.lock"), execute);

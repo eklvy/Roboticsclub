@@ -87,3 +87,15 @@ The tested development command uses Webpack. `npm run typecheck` generates Next.
 An expired mission offers **New mission** on the opening screen. Local game/admin writes use `.data/event.lock` to prevent overlapping saves. If a server crashes and leaves this lock behind, stop all game server processes before removing the lock and restarting. Never remove it while a server is saving.
 
 See `docs/AUDIT.md` for the runtime audit and remaining hosted-deployment checks.
+
+### `ENOENT ... mkdir '/var/task/.data'` on a hosted deployment
+
+The deployment is running local practice storage inside a serverless function. The application directory is not a persistent writable database. Configure Supabase in the hosting project's environment settings:
+
+- `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: project's public anon key.
+- `SUPABASE_SERVICE_ROLE_KEY`: project's private service-role key, server-side only.
+
+Apply `supabase/migrations/001_event.sql` in the Supabase SQL editor, then redeploy with those variables available to the build and runtime. For Vercel, set them for the Production environment (and Preview if used). Local `.env.local` files are deliberately not pushed to GitHub and are not automatically present on the deployment.
+
+The server now rejects unconfigured serverless storage with an actionable setup error before attempting any filesystem writes. This guard does not provision a database: registration requires the credentials and migration above. Do not change the storage path to `/tmp`; scratch files can disappear or differ between function instances, losing player sessions and standings.

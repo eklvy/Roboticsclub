@@ -1,3 +1,4 @@
+import { StorageConfigurationError } from "@/lib/server/storage-config";
 import { sameOrigin } from "@/lib/server/origin";
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
@@ -132,7 +133,7 @@ export async function POST(req: NextRequest) {
             ? "Invalid terminal input."
             : (e as Error).message,
       },
-      { status: 400 },
+      { status: e instanceof StorageConfigurationError ? 503 : 400 },
     );
   }
 }
