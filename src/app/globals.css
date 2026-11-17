@@ -2258,6 +2258,12 @@ td strong {
     translate: 0 -5px;
   }
 }
+.footer-note {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 1.4px;
+  color: #3f5260;
+}
 /* ── Cinematic FX layer (Fx.tsx) ─────────────────────────────────────
    Depth, verdict feedback and urgency. All of it is animation or
    pointer-driven, so the prefers-reduced-motion block switches it off and

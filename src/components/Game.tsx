@@ -1173,9 +1173,12 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
             <i />
             {mode === "local" ? "LOCAL PRACTICE MODE" : "COMPETITION MODE"}
           </span>
-          <a href="/admin">
-            MISSION CONTROL <ArrowUpRight size={12} />
-          </a>
+          {/* Mission control is reachable at /admin by people who run the
+              event. It is not linked from the public facility, so operators
+              are not invited to poke at it mid-competition. Authentication
+              is unchanged: the route still requires an allowlisted
+              administrator. */}
+          <span className="footer-note">SECURE CHANNEL // STAFF ONLY</span>
         </footer>
         {feedback && (
           <div
