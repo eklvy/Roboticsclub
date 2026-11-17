@@ -27,6 +27,14 @@ import {
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import Scene from "./Scene";
+import {
+  ParticleField,
+  PointerParallax,
+  CardTilt,
+  RevealOnScroll,
+  Scramble,
+  useImpact,
+} from "./Fx";
 import Puzzle from "./Puzzle";
 import { levels, puzzles } from "@/data/levels";
 import {
@@ -271,12 +279,38 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
       setBusy(false);
     }
   }
+  // Every verdict gets a fresh token so repeated answers replay the effect.
+  const [impact, setImpact] = useState(0);
+  useEffect(() => {
+    if (feedback) setImpact((n) => n + 1);
+  }, [feedback]);
+  useImpact(feedback, impact);
+  const urgency =
+    run && remaining > 0 && remaining < 300
+      ? remaining < 60
+        ? "critical"
+        : "urgent"
+      : "";
   const activeLevel = run ? Math.min(5, Math.floor(run.stage / 3)) : 0,
     level = levels[selected],
     completed = run && selected < Math.floor(run.stage / 3);
   return (
     <MotionConfig reducedMotion="user">
-      <div className={`app screen-${screen}`}>
+      <div className={`app screen-${screen} ${urgency}`}>
+        <PointerParallax />
+        <RevealOnScroll screen={screen} />
+        {urgency && (
+          <div className="urgency-vignette" aria-hidden="true">
+            <span />
+          </div>
+        )}
+        {feedback && (
+          <div
+            key={impact}
+            className={`verdict-flash ${feedback.ok ? "ok" : "bad"}`}
+            aria-hidden="true"
+          />
+        )}
         {screen === "intro" && boot < 100 && (
           <div className="boot-screen" aria-label="System boot sequence">
             <Hexagon size={50} />
@@ -365,12 +399,13 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
               <>
                 <section className="hero">
                   <Scene hero />
+                  <ParticleField />
                   <div className="hero-shade" />
                   <div className="hero-content">
                     <div className="eyebrow">
                       <span className="pulse" /> EMERGENCY PROTOCOL // 2097
                     </div>
-                    <h1>
+                    <h1 className="glitch" data-text="ROBO LOCKDOWN.">
                       ROBO
                       <span>
                         LOCKDOWN<span className="title-dot">.</span>
@@ -456,13 +491,17 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
                     <Terminal size={15} />
                     <span className="cyan">ORION_OS</span>
                     <span className="terminal-status">
-                      {boot < 30
-                        ? "BOOTING NEXUS-09…"
-                        : boot < 60
-                          ? "INITIALIZING ROBOTIC CONTROL SYSTEM…"
-                          : boot < 100
-                            ? "WARNING: UNAUTHORIZED AI ACTIVITY DETECTED"
-                            : "SECURITY PROTOCOL ACTIVE. ALL EXITS LOCKED."}
+                      {(() => {
+                        const line =
+                          boot < 30
+                            ? "BOOTING NEXUS-09…"
+                            : boot < 60
+                              ? "INITIALIZING ROBOTIC CONTROL SYSTEM…"
+                              : boot < 100
+                                ? "WARNING: UNAUTHORIZED AI ACTIVITY DETECTED"
+                                : "SECURITY PROTOCOL ACTIVE. ALL EXITS LOCKED.";
+                        return <Scramble key={line} text={line} />;
+                      })()}
                     </span>
                     <span className="cursor">▌</span>
                   </div>
@@ -472,7 +511,7 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
                   </span>
                 </div>
                 <section className="sector-preview">
-                  <div className="section-heading">
+                  <div className="section-heading" data-reveal="">
                     <div>
                       <span className="micro">YOUR PATH TO THE SURFACE</span>
                       <h2>Six sectors. Zero shortcuts.</h2>
@@ -481,13 +520,18 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
                       RESTORE ACCESS. RECLAIM CONTROL. ESCAPE.
                     </span>
                   </div>
+                  <CardTilt selector=".sector-grid" />
                   <div className="sector-grid">
                     {levels.map((l, i) => (
                       <button
                         key={l.name}
+                        data-reveal=""
+                        style={{ ["--delay" as string]: `${i * 70}ms` }}
                         className={`sector-card ${i === 0 ? "first" : ""}`}
                         onClick={() => openRoom(i)}
                       >
+                        <span className="card-sheen" aria-hidden="true" />
+                        <span className="card-trace" aria-hidden="true" />
                         <div className="sector-card-top">
                           <span>SECTOR {String(i + 1).padStart(2, "0")}</span>
                           {i === 0 ? (
