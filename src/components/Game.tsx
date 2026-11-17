@@ -122,10 +122,14 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
     const timer = setInterval(() => setNow(Date.now() + offset), 100);
     return () => clearInterval(timer);
   }, [offset]);
+  // A paused mission freezes at the moment mission control stopped it; the
+  // server returns the frozen time on resume, so the displayed clock and the
+  // server deadline stay in agreement.
   const remaining = run
     ? Math.max(
         0,
-        run.duration - Math.floor(((run.ended ?? now) - run.started) / 1000),
+        run.duration -
+          Math.floor(((run.ended ?? run.pausedAt ?? now) - run.started) / 1000),
       )
     : config.duration;
   useEffect(() => {
@@ -286,7 +290,7 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
   }, [feedback]);
   useImpact(feedback, impact);
   const urgency =
-    run && remaining > 0 && remaining < 300
+    run && !run.pausedAt && remaining > 0 && remaining < 300
       ? remaining < 60
         ? "critical"
         : "urgent"
@@ -694,44 +698,56 @@ export default function Game({ initial = "intro" }: { initial?: Screen }) {
               </section>
             )}
             {(screen === "map" || screen === "room") && run && (
-              <div className="mission-hud">
-                <div>
-                  <span className="micro">OPERATOR</span>
-                  <strong>
-                    {run.name} <small>{run.team}</small>
-                  </strong>
+              <>
+                {run.pausedAt && (
+                  <div className="paused-banner" role="status">
+                    <Clock size={15} />
+                    <strong>MISSION PAUSED BY CONTROL</strong>
+                    <span>
+                      Your clock is frozen. The terminal unlocks when mission
+                      control resumes the run.
+                    </span>
+                  </div>
+                )}
+                <div className="mission-hud">
+                  <div>
+                    <span className="micro">OPERATOR</span>
+                    <strong>
+                      {run.name} <small>{run.team}</small>
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="micro">MISSION CLOCK</span>
+                    <strong className={remaining < 300 ? "red" : ""}>
+                      <Clock size={17} />
+                      {time(remaining)}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="micro">SCORE</span>
+                    <strong>
+                      {(run.score < 0 ? "−" : "") +
+                        String(Math.abs(run.score)).padStart(4, "0")}
+                      <small>PTS</small>
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="micro">SECTORS RESTORED</span>
+                    <strong>
+                      {Math.floor(run.stage / 3)}
+                      <small>/ 06</small>
+                    </strong>
+                  </div>
+                  <button
+                    className="button journal-button"
+                    onClick={() => setModal("journal")}
+                  >
+                    <BookOpen size={17} />
+                    <span>FIELD JOURNAL</span>
+                    <b>{run.fragments.length}</b>
+                  </button>
                 </div>
-                <div>
-                  <span className="micro">MISSION CLOCK</span>
-                  <strong className={remaining < 300 ? "red" : ""}>
-                    <Clock size={17} />
-                    {time(remaining)}
-                  </strong>
-                </div>
-                <div>
-                  <span className="micro">SCORE</span>
-                  <strong>
-                    {(run.score < 0 ? "−" : "") +
-                      String(Math.abs(run.score)).padStart(4, "0")}
-                    <small>PTS</small>
-                  </strong>
-                </div>
-                <div>
-                  <span className="micro">SECTORS RESTORED</span>
-                  <strong>
-                    {Math.floor(run.stage / 3)}
-                    <small>/ 06</small>
-                  </strong>
-                </div>
-                <button
-                  className="button journal-button"
-                  onClick={() => setModal("journal")}
-                >
-                  <BookOpen size={17} />
-                  <span>FIELD JOURNAL</span>
-                  <b>{run.fragments.length}</b>
-                </button>
-              </div>
+              </>
             )}
             {screen === "map" && (
               <section className="facility-page page-width">

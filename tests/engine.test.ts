@@ -282,3 +282,55 @@ test("rules are frozen per session while sector availability remains live", () =
   act(r, { type: "submit", stage: 0, answer: "42" }, changed, start + 1000);
   assert.equal(r.score, 35);
 });
+
+test("a paused mission freezes the clock and locks the terminal", () => {
+  const run = fresh();
+  run.pausedAt = start + 60000;
+  assert.throws(
+    () => act(run, { type: "submit", stage: 0, answer: "42" }, DEFAULT_CONFIG, start + 120000),
+    /paused by mission control/i,
+  );
+  // Standings ignore frozen time while the pause is still open.
+  const store = freshStore();
+  store.runs = [run];
+  assert.equal(board(store, start + 300000)[0].elapsed, 60);
+  assert.equal(board(store, start + 300000)[0].paused, true);
+});
+
+test("resuming returns the frozen time and the mission continues", () => {
+  const run = fresh();
+  const frozen = 240000;
+  run.pausedAt = start + 60000;
+  // Mission control resumes: frozen time is banked and the deadline moves.
+  run.pausedTotal = frozen;
+  run.duration += frozen / 1000;
+  delete run.pausedAt;
+  const now = start + 60000 + frozen + 1000;
+  assert.equal(act(run, { type: "submit", stage: 0, answer: "42" }, DEFAULT_CONFIG, now).ok, true);
+  const store = freshStore();
+  store.runs = [run];
+  // 61 seconds of real play, not the 301 seconds of wall clock.
+  assert.equal(board(store, now)[0].elapsed, 61);
+});
+
+test("granted minutes extend the deadline without paying a time bonus", () => {
+  const plain = fresh();
+  const extended = fresh();
+  extended.duration += 600;
+  extended.granted = 600;
+  const finish = (run: ReturnType<typeof fresh>) => {
+    run.stage = 17;
+    run.armed = start + 1000;
+    act(run, { type: "submit", stage: 17, answer: "CADB" }, DEFAULT_CONFIG, start + 2000);
+    return run.score;
+  };
+  assert.equal(finish(plain), finish(extended));
+  // The extension is still real: the mission has not expired.
+  const late = fresh();
+  late.duration += 600;
+  late.granted = 600;
+  assert.equal(
+    act(late, { type: "submit", stage: 0, answer: "42" }, DEFAULT_CONFIG, start + 3600000 + 60000).ok,
+    true,
+  );
+});

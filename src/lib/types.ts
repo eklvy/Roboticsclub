@@ -32,6 +32,12 @@ export type Run = {
   fragments: string[];
   laser: [number, number];
   armed?: number;
+  // Mission control adjustments. pausedAt is set while a mission is frozen;
+  // pausedTotal accumulates frozen milliseconds so standings ignore them;
+  // granted counts manually added seconds, which must not earn a time bonus.
+  pausedAt?: number;
+  pausedTotal?: number;
+  granted?: number;
   lastAction: number;
   lastHint?: string;
   lastHintStage?: number;
@@ -46,6 +52,8 @@ export type BoardEntry = {
   completed: number;
   hints: number;
   finished: boolean;
+  paused: boolean;
+  granted: number;
 };
 export type Store = { version: number; config: Config; runs: Run[] };
 export const DEFAULT_CONFIG: Config = {

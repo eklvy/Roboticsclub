@@ -159,6 +159,35 @@ export async function POST(req: NextRequest) {
             enabled: z.array(z.boolean()).length(6),
           })
           .parse(body.config);
+      } else if (body.type === "adjust-player") {
+        const input = z
+          .object({
+            id: z.string().max(80),
+            mode: z.enum(["pause", "resume", "extend"]),
+            minutes: z.number().int().min(1).max(120).optional(),
+          })
+          .parse(body);
+        const r = s.runs.find((run) => run.id === input.id);
+        if (!r) throw new Error("Player not found.");
+        if (r.ended) throw new Error("This mission has already finished.");
+        const at = Date.now();
+        if (input.mode === "pause") {
+          if (!r.pausedAt) r.pausedAt = at;
+        } else if (input.mode === "resume") {
+          if (r.pausedAt) {
+            // Give back exactly the time that was frozen, so the team
+            // resumes with the clock they had when it stopped.
+            const frozen = Math.max(0, at - r.pausedAt);
+            r.pausedTotal = (r.pausedTotal ?? 0) + frozen;
+            r.duration += Math.round(frozen / 1000);
+            delete r.pausedAt;
+          }
+        } else {
+          const minutes = input.minutes ?? 5;
+          r.duration += minutes * 60;
+          r.granted = (r.granted ?? 0) + minutes * 60;
+        }
+        r.updated = at;
       } else if (body.type === "reset-player") {
         const i = s.runs.findIndex((r) => r.id === body.id);
         if (i < 0) throw new Error("Player not found.");

@@ -51,6 +51,18 @@ export function publicRun(run: Run) {
   const { tokenHash: _, ...safe } = run;
   return safe;
 }
+/** Frozen milliseconds so far, including a pause that is still open. */
+export function pausedMs(run: Run, now = Date.now()) {
+  return (run.pausedTotal ?? 0) + (run.pausedAt ? Math.max(0, now - run.pausedAt) : 0);
+}
+/** Wall-clock deadline, pushed out while a mission is frozen. */
+export function deadline(run: Run, now = Date.now()) {
+  return (
+    run.started +
+    run.duration * 1000 +
+    (run.pausedAt ? Math.max(0, now - run.pausedAt) : 0)
+  );
+}
 export function board(store: Store, now = Date.now()): BoardEntry[] {
   return store.runs
     .map((r) => ({
@@ -58,14 +70,21 @@ export function board(store: Store, now = Date.now()): BoardEntry[] {
       name: r.name,
       team: r.team,
       score: r.score,
-      elapsed: Math.floor(
-        ((r.ended ?? Math.min(now, r.started + r.duration * 1000)) -
-          r.started) /
-          1000,
+      // Time spent frozen by mission control never counts against a team.
+      elapsed: Math.max(
+        0,
+        Math.floor(
+          ((r.ended ?? Math.min(now, deadline(r, now))) -
+            r.started -
+            pausedMs(r, now)) /
+            1000,
+        ),
       ),
       completed: Math.floor(r.stage / 3),
       hints: r.hints,
       finished: r.stage === 18,
+      paused: !!r.pausedAt,
+      granted: r.granted ?? 0,
     }))
     .sort(
       (a, b) =>
@@ -250,9 +269,15 @@ function complete(run: Run, now: number) {
   }
   if (run.stage === 18) {
     run.ended = now;
+    // Granted seconds extend the deadline but must not be sold back as
+    // bonus points; frozen time is already matched by an equal extension.
     run.score +=
-      Math.floor(Math.max(0, run.duration - (now - run.started) / 1000) / 60) *
-      cfg.timeBonus;
+      Math.floor(
+        Math.max(
+          0,
+          run.duration - (run.granted ?? 0) - (now - run.started) / 1000,
+        ) / 60,
+      ) * cfg.timeBonus;
   }
   return {
     ok: true,
@@ -271,7 +296,11 @@ export function act(
   now = Date.now(),
 ): { ok: boolean; message: string; hint?: string } {
   if (run.stage >= 18) throw new Error("This mission is already complete.");
-  if (now >= run.started + run.duration * 1000)
+  if (run.pausedAt)
+    throw new Error(
+      "Mission paused by mission control. Your clock is frozen until they resume it.",
+    );
+  if (now >= deadline(run, now))
     throw new Error("Mission timer expired. Start a new mission.");
   if (action.stage !== run.stage)
     throw new Error("Your terminal is out of sync. Refresh the mission.");

@@ -85,6 +85,7 @@ export default function Admin() {
         "Elapsed seconds",
         "Levels",
         "Hints",
+        "Granted minutes",
         "Status",
       ],
       ...entries.map((e, i) => [
@@ -97,7 +98,8 @@ export default function Admin() {
         e.elapsed,
         e.completed,
         e.hints,
-        e.finished ? "Escaped" : "Incomplete",
+        Math.round(e.granted / 60),
+        e.finished ? "Escaped" : e.paused ? "Paused" : "Incomplete",
       ]),
     ];
     const blob = new Blob(
@@ -352,7 +354,13 @@ export default function Admin() {
                         </small>
                       </td>
                       <td>{e.score}</td>
-                      <td>{time(e.elapsed)}</td>
+                      <td>
+                        {time(e.elapsed)}
+                        {e.paused && <small className="red">PAUSED</small>}
+                        {e.granted > 0 && (
+                          <small>+{Math.round(e.granted / 60)} MIN GRANTED</small>
+                        )}
+                      </td>
                       <td>{e.completed}/6</td>
                       <td>{e.hints}</td>
                       <td>
@@ -380,12 +388,57 @@ export default function Admin() {
                             <button onClick={() => setReset("")}>CANCEL</button>
                           </div>
                         ) : (
-                          <button
-                            className="button"
-                            onClick={() => setReset(e.id)}
-                          >
-                            RESET PLAYER
-                          </button>
+                          <div className="action-row">
+                            {!e.finished && (
+                              <>
+                                <button
+                                  className="button"
+                                  disabled={busy}
+                                  onClick={async () => {
+                                    if (
+                                      await action({
+                                        type: "adjust-player",
+                                        id: e.id,
+                                        mode: e.paused ? "resume" : "pause",
+                                      })
+                                    )
+                                      setNotice(
+                                        e.paused
+                                          ? `${e.name} resumed. Frozen time was returned to their clock.`
+                                          : `${e.name} paused. Their clock is frozen and the terminal is locked.`,
+                                      );
+                                  }}
+                                >
+                                  {e.paused ? "RESUME" : "PAUSE"}
+                                </button>
+                                <button
+                                  className="button"
+                                  disabled={busy}
+                                  onClick={async () => {
+                                    if (
+                                      await action({
+                                        type: "adjust-player",
+                                        id: e.id,
+                                        mode: "extend",
+                                        minutes: 5,
+                                      })
+                                    )
+                                      setNotice(
+                                        `Five minutes added for ${e.name}. Added time earns no time bonus.`,
+                                      );
+                                  }}
+                                >
+                                  +5 MIN
+                                </button>
+                              </>
+                            )}
+                            <button
+                              className="button"
+                              onClick={() => setReset(e.id)}
+                            >
+                              RESET
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>

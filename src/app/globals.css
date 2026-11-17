@@ -2258,6 +2258,29 @@ td strong {
     translate: 0 -5px;
   }
 }
+.paused-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 13px 5.5%;
+  background: #ffd16612;
+  border-bottom: 1px solid #ffd16640;
+  color: #ffd166;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1.2px;
+}
+.paused-banner span {
+  color: #b9a06a;
+  letter-spacing: 0.4px;
+}
+.admin-table td small {
+  display: block;
+  font-size: 7px;
+  letter-spacing: 0.8px;
+  color: #6d839a;
+}
 .footer-note {
   font-family: var(--mono);
   font-size: 8px;
