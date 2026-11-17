@@ -19,19 +19,30 @@ export function database() {
 }
 const directory = path.join(process.cwd(), ".data"),
   file = path.join(directory, "event.json");
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function read(): Promise<Store> {
   validateStorageEnvironment();
   if (production) {
-    const { data, error } = await database()
-      .from("event_state")
-      .select("data,version")
-      .eq("id", 1)
-      .single();
-    if (error)
-      throw new Error(
-        "Event database unavailable. Apply the migration and verify credentials.",
-      );
-    return { ...data.data, version: data.version };
+    // A cold serverless instance can lose its first outbound request to
+    // Supabase. Retry transient failures briefly before surfacing an outage,
+    // so the first operator of the event never sees a 503.
+    let last: { code?: string; message?: string } | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data, error } = await database()
+        .from("event_state")
+        .select("data,version")
+        .eq("id", 1)
+        .single();
+      if (!error && data) return { ...data.data, version: data.version };
+      last = error ?? { message: "Event row 1 is missing." };
+      // Missing row or rejected credentials will not fix themselves: fail fast.
+      if (error?.code === "PGRST116" || error?.code === "42501" || !error) break;
+      await sleep(120 * (attempt + 1));
+    }
+    console.error("Event database read failed:", last?.code, last?.message);
+    throw new Error(
+      "Event database unavailable. Apply the migration and verify credentials.",
+    );
   }
   try {
     return JSON.parse(await fs.readFile(file, "utf8"));

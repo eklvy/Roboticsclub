@@ -2258,6 +2258,238 @@ td strong {
     translate: 0 -5px;
   }
 }
+/* ── Robotics motion layer (Scene.tsx) ───────────────────────────────
+   Every rule here is an animation only, so the global
+   prefers-reduced-motion block below switches the whole layer off. */
+.ani-sweep,
+.ani-arm-upper,
+.ani-arm-fore,
+.ani-arm-claw,
+.ani-core,
+.ani-core-inner {
+  transform-box: view-box;
+}
+.ani-sweep {
+  transform-origin: 615px 150px;
+  animation: ani-sweep 9s ease-in-out infinite;
+}
+@keyframes ani-sweep {
+  0%,
+  100% {
+    rotate: -17deg;
+  }
+  50% {
+    rotate: 17deg;
+  }
+}
+.ani-arm-upper {
+  transform-origin: 400px 548px;
+  animation: ani-arm-upper 7s ease-in-out infinite;
+}
+@keyframes ani-arm-upper {
+  0%,
+  100% {
+    rotate: -14deg;
+  }
+  50% {
+    rotate: 20deg;
+  }
+}
+.ani-arm-fore {
+  transform-origin: 400px 444px;
+  animation: ani-arm-fore 7s ease-in-out infinite;
+}
+@keyframes ani-arm-fore {
+  0%,
+  100% {
+    rotate: 26deg;
+  }
+  45% {
+    rotate: -30deg;
+  }
+}
+.ani-arm-claw {
+  transform-origin: 400px 380px;
+  animation: ani-arm-claw 2.3s ease-in-out infinite;
+}
+@keyframes ani-arm-claw {
+  0%,
+  100% {
+    rotate: -9deg;
+  }
+  50% {
+    rotate: 9deg;
+  }
+}
+.ani-weld {
+  animation: ani-weld 1.6s steps(1, end) infinite;
+}
+.ani-weld-glow {
+  animation: ani-weld 1.6s steps(1, end) infinite;
+  opacity: 0.5;
+}
+@keyframes ani-weld {
+  0%,
+  44%,
+  52%,
+  66%,
+  100% {
+    opacity: 0;
+  }
+  46%,
+  50%,
+  60% {
+    opacity: 0.9;
+  }
+}
+.ani-patrol {
+  animation: ani-patrol 19s ease-in-out infinite;
+}
+@keyframes ani-patrol {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  25% {
+    translate: 170px -8px;
+  }
+  50% {
+    translate: 420px 4px;
+  }
+  75% {
+    translate: 180px -6px;
+  }
+}
+.ani-beacon {
+  animation: pulse 1.1s ease-in-out infinite;
+}
+.ani-core {
+  transform-origin: 820px 300px;
+  animation: spin 16s linear infinite;
+}
+.ani-core-inner {
+  transform-origin: 820px 300px;
+  animation: spin 7s linear infinite reverse;
+}
+.ani-core-pulse {
+  animation: ani-core-pulse 3.4s ease-in-out infinite;
+}
+@keyframes ani-core-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    scale: 0.8;
+  }
+  50% {
+    opacity: 0.75;
+    scale: 1.5;
+  }
+}
+.ani-core-pulse,
+.ani-alarm {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.ani-alarm {
+  animation: ani-alarm 2s ease-in-out infinite;
+}
+@keyframes ani-alarm {
+  0%,
+  100% {
+    opacity: 0.12;
+    scale: 0.6;
+  }
+  50% {
+    opacity: 0.6;
+    scale: 1.3;
+  }
+}
+.ani-flow-l {
+  animation: ani-flow-l 3.6s linear infinite;
+}
+@keyframes ani-flow-l {
+  0% {
+    translate: 0 0;
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.95;
+  }
+  88% {
+    opacity: 0.95;
+  }
+  100% {
+    translate: -215px 213px;
+    opacity: 0;
+  }
+}
+.ani-flow-r {
+  animation: ani-flow-r 3.6s linear infinite 1.8s;
+}
+@keyframes ani-flow-r {
+  0% {
+    translate: 0 0;
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.95;
+  }
+  88% {
+    opacity: 0.95;
+  }
+  100% {
+    translate: 220px 213px;
+    opacity: 0;
+  }
+}
+.ani-sparks path {
+  animation: ani-spark 2.8s steps(1, end) infinite;
+}
+.ani-sparks path:nth-child(2) {
+  animation-delay: 0.45s;
+}
+.ani-sparks path:nth-child(3) {
+  animation-delay: 0.9s;
+}
+@keyframes ani-spark {
+  0%,
+  22%,
+  100% {
+    opacity: 0.15;
+  }
+  8%,
+  14% {
+    opacity: 1;
+  }
+}
+.ani-scan {
+  animation: ani-scan 0.5s steps(4, end) infinite;
+}
+@keyframes ani-scan {
+  to {
+    translate: 0 4px;
+  }
+}
+.ani-glitch {
+  animation: ani-glitch 7s linear infinite;
+}
+@keyframes ani-glitch {
+  0% {
+    translate: 0 -30px;
+    opacity: 0;
+  }
+  4% {
+    opacity: 0.12;
+  }
+  40% {
+    opacity: 0.07;
+  }
+  55%,
+  100% {
+    translate: 0 790px;
+    opacity: 0;
+  }
+}
 @keyframes appear {
   from {
     opacity: 0;

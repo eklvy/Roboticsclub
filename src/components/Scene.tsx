@@ -41,6 +41,12 @@ export default function Scene({
         <filter id="glow">
           <feGaussianBlur stdDeviation="5" />
         </filter>
+        <pattern id="scanlines" width="4" height="4" patternUnits="userSpaceOnUse">
+          <path d="M0 0H4" stroke="#8fd9ff" strokeWidth="1" opacity=".07" />
+        </pattern>
+        <filter id="softglow">
+          <feGaussianBlur stdDeviation="9" />
+        </filter>
         <pattern
           id="grille"
           width="14"
@@ -435,6 +441,62 @@ export default function Scene({
         <path d="M26 19L55 11" stroke={color} strokeWidth="5" />
         <path d="M13 57L5 82M63 55L76 76" stroke="#3c4e5a" strokeWidth="9" />
       </g>
+      {/* ── Animated robotics layer ───────────────────────────────────
+          Absolute coordinates, no transform attribute: motion lives in
+          globals.css so `prefers-reduced-motion` disables all of it. */}
+      <g className="ani-sweep" opacity=".55">
+        <path d="M615 150L470 532H760Z" fill={color} opacity=".08" />
+        <path d="M615 150L470 532" stroke={color} strokeWidth="2" opacity=".3" />
+        <path d="M615 150L760 532" stroke={color} strokeWidth="2" opacity=".3" />
+      </g>
+      <g className="ani-arm-upper">
+        <circle cx="400" cy="548" r="15" fill="#1b2a35" stroke="#41596a" strokeWidth="2" />
+        <path d="M391 548H409V444H391Z" fill="url(#metal)" stroke="#456071" />
+        <g className="ani-arm-fore">
+          <circle cx="400" cy="444" r="11" fill="#17242e" stroke="#3c5464" strokeWidth="2" />
+          <path d="M395 444H405V380H395Z" fill="url(#metal)" stroke="#456071" />
+          <g className="ani-arm-claw">
+            <path d="M386 380L400 366L414 380" stroke={color} strokeWidth="4" fill="none" />
+            <circle className="ani-weld" cx="400" cy="372" r="4" fill="#ffffff" />
+            <circle className="ani-weld-glow" cx="400" cy="372" r="11" fill={color} filter="url(#softglow)" />
+          </g>
+        </g>
+      </g>
+      <path d="M368 556H432V566H368Z" fill="#16222c" stroke="#2c3f4c" />
+      <g className="ani-patrol" opacity=".5">
+        <path d="M340 250L384 239L406 251V275L362 287L340 272Z" fill="#16242f" stroke="#3b5466" />
+        <path d="M352 257L379 250V263L352 270Z" fill="#04090f" />
+        <circle className="ani-beacon" cx="373" cy="283" r="4" fill={color} />
+      </g>
+      <g className="ani-core">
+        <path
+          d="M854 300L837 329.4L803 329.4L786 300L803 270.6L837 270.6Z"
+          fill="none"
+          stroke={color}
+          strokeWidth="2.5"
+          opacity=".8"
+        />
+      </g>
+      <g className="ani-core-inner">
+        <path
+          d="M840 300L830 317.3L810 317.3L800 300L810 282.7L830 282.7Z"
+          fill="none"
+          stroke="#9fd8e8"
+          strokeWidth="2"
+          opacity=".7"
+        />
+      </g>
+      <circle className="ani-core-pulse" cx="820" cy="300" r="7" fill={color} filter="url(#softglow)" />
+      <circle className="ani-alarm" cx="803" cy="450" r="12" fill="#ff3b5c" filter="url(#softglow)" />
+      <circle className="ani-flow-l" cx="350" cy="552" r="5" fill="#eafcff" />
+      <circle className="ani-flow-r" cx="875" cy="552" r="5" fill="#eafcff" />
+      <g className="ani-sparks" stroke={color} strokeWidth="2" opacity=".9">
+        <path d="M534 300H560" />
+        <path d="M540 330H566" />
+        <path d="M534 356H556" />
+      </g>
+      <rect width="1200" height="780" fill="url(#scanlines)" className="ani-scan" />
+      <rect className="ani-glitch" x="0" y="0" width="1200" height="26" fill="#9fe8ff" opacity=".05" />
       <text
         x="333"
         y="209"
